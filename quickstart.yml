@@ -1,0 +1,83 @@
+version: "3.8"
+services:
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    environment:
+    - MONGO_INITDB_ROOT_USERNAME=root
+    - MONGO_INITDB_ROOT_PASSWORD=adminpassword
+    - MONGO_DB=test
+    ports:
+    - 27017:27017
+    networks:
+      - overlay
+    volumes:
+    #- .docker/mongodb/data:/data/db
+    - ./.docker/mongodb/scripts/:/docker-entrypoint-initdb.d/
+    
+
+  app_1:
+    build:
+      context: .
+      args:
+        GITLAB_DEPLOYMENT_PRIVATE_KEY: ${GITLAB_DEPLOYMENT_PRIVATE_KEY}
+    deploy:
+      replicas: 1
+    depends_on:
+    - mongo
+    environment:
+      AT_LOGGER_LEVEL: "debug"
+      AT_DATABASE_HOST: "mongo"
+      AT_DATABASE_PORT: 27017
+      AT_DATABASE_USER: "root"
+      AT_DATABASE_DATABASENAME: "test"
+      AT_DATABASE_PASSWORD: "adminpassword"
+    ports:
+      - 8080:8080
+      - 8081:8081
+    networks:
+      - overlay
+  
+  app_2:
+    build:
+      context: .
+      args:
+        GITLAB_DEPLOYMENT_PRIVATE_KEY: ${GITLAB_DEPLOYMENT_PRIVATE_KEY}
+    deploy:
+      replicas: 1
+    depends_on:
+    - mongo
+    environment:
+      AT_LOGGER_LEVEL: "debug"
+      AT_SERVER_HTTP_PORT: 8180
+      AT_SERVER_GRPC_PORT: 8181
+      AT_DATABASE_HOST: "mongo"
+      AT_DATABASE_PORT: 27017
+      AT_DATABASE_USER: "root"
+      AT_DATABASE_DATABASENAME: "test"
+      AT_DATABASE_PASSWORD: "adminpassword"
+    ports:
+      - 8180:8180
+      - 8181:8181
+    networks:
+      - overlay
+
+  nginx:
+    image: nginx:1.13.11
+    depends_on:
+      - mongo
+      - app_1
+      - app_2
+    ports:
+      - 1443:1443
+    volumes:
+      - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - overlay
+    links:
+      - app_1:app_1
+      - app_2:app_2
+
+networks:
+  overlay:

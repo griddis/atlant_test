@@ -1,0 +1,101 @@
+syntax = "proto3";
+package service;
+
+message GetLivenessRequest {
+}
+
+message GetLivenessRespone {
+    string status = 1;
+    string err = 2;
+}
+
+message GetReadinessRequest {
+}
+
+message GetReadinessResponse {
+    string status = 1;
+    string err = 2;
+}
+
+
+message ResponseStatus {
+    string status = 1;
+}
+
+message VersionResponse {
+    string buildTime = 1;
+    string commit = 2;
+    string version = 3;
+}
+
+
+
+message Version {
+    string buildTime = 1;
+    string commit = 2;
+    string version = 3;
+}
+
+message GetVersionRequest {
+}
+
+message GetVersionResponse {
+    Version version = 1;
+    string err = 2;
+}
+
+service HealthService {
+
+    rpc GetLiveness (GetLivenessRequest) returns (GetLivenessRespone) {
+    };
+
+    // The kubelet uses readiness probes to know when a Container is ready to start accepting traffic
+    rpc GetReadiness (GetReadinessRequest) returns (GetReadinessResponse) {
+    };
+
+    // Check buid time, last commit and version app
+    rpc GetVersion (GetVersionRequest) returns (GetVersionResponse) {
+    };
+}
+
+message FetchRequest {
+    repeated string files = 1;
+}
+
+message FetchResponse {
+    string status = 1;
+    string err = 2;
+}
+
+message ListRequest {
+    Limiter limiter = 1;
+    map<string,int32> sorter = 2;
+}
+
+message ListResponse {
+    repeated ListItems listItems = 1;
+    string err = 2;
+}
+
+message Limiter {
+    string offsetbyid = 1;
+    int64 limit = 2;
+}
+
+message ListItems {
+    string id = 1;
+    string name = 2;
+    float price = 3;
+    uint32 counter = 4;
+    string date = 5;
+}
+
+
+service Service {
+
+    rpc Fetch (FetchRequest) returns (FetchResponse) {
+    }
+
+    rpc List (ListRequest) returns (ListResponse) {
+    }
+}

@@ -1,0 +1,1 @@
+protoc --proto_path=api/proto --proto_path=scripts --go_out=plugins=grpc:. api/proto/*.proto
