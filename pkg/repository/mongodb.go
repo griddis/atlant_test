@@ -48,19 +48,35 @@ func (r *mongodbStore) Close(ctx context.Context) error {
 	return nil
 }
 func (r *mongodbStore) UpdatePrice(ctx context.Context, obj ProductPrice) error {
-	var updatedDocument ProductPrice
-	opts := options.FindOneAndUpdate().SetUpsert(true)
-	filter := bson.D{{"name", obj.Name}}
-	update := bson.D{{"$set", bson.M{"name": obj.Name, "price": obj.Price, "date": time.Now()}}, {"$inc", bson.M{"counter": 1}}}
-
-	err := r.coll.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedDocument)
+	//search previous price
+	var searchDocument ProductPrice
+	filter := bson.M{"name": obj.Name, "price": obj.Price}
+	opts := options.FindOne()
+	err := r.coll.FindOne(context.TODO(), filter, opts).Decode(&searchDocument)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil
+		if err != mongo.ErrNoDocuments {
+			return errors.New("error from find document")
 		}
-		return Noresult
+
 	}
-	r.logger.Debug("document", fmt.Sprintf("%+v", updatedDocument))
+
+	if searchDocument.Price != obj.Price {
+		var updatedDocument ProductPrice
+		opts := options.FindOneAndUpdate().SetUpsert(true)
+		filter := bson.D{{"name", obj.Name}}
+		update := bson.D{{"$set", bson.M{"name": obj.Name, "price": obj.Price, "date": time.Now()}}, {"$inc", bson.M{"counter": 1}}}
+
+		err := r.coll.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedDocument)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				return nil
+			}
+			return Noresult
+		}
+		r.logger.Debug("status", "document updated", "msg", fmt.Sprintf("%+v", updatedDocument))
+		return nil
+	}
+	r.logger.Debug("status", "document don`t update", "msg", fmt.Sprintf("name: %s price=%f newprice=%f", obj.Name, searchDocument.Price, obj.Price))
 	return nil
 }
 

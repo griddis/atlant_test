@@ -72,7 +72,22 @@ func (s *service) Fetch(ctx context.Context, req *FetchRequest) (*FetchResponse,
 					return nil, errors.Wrap(err, "read error csv")
 				}
 
-				price, _ := strconv.ParseFloat(record[1], 64)
+				if len(record[0]) == 0 {
+					logger.Error("name", "is empty")
+					continue
+				}
+
+				price, err := strconv.ParseFloat(record[1], 64)
+				if err != nil {
+					logger.Error("price", "parse error")
+					continue
+				}
+
+				if price <= 0 {
+					logger.Error("price", "only more than 0")
+					continue
+				}
+
 				product := repository.ProductPrice{Name: record[0], Price: float32(price)}
 
 				err = s.repository.UpdatePrice(ctx, product)
